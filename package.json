@@ -1,0 +1,66 @@
+{
+  "name": "gql-testkit",
+  "version": "0.0.2",
+  "description": "GraphQL tests Toolkit",
+  "bin": {
+    "gql-testkit": "./bin/gql-testkit.js"
+  },
+  "scripts": {
+    "prebuild": "tsc -d",
+    "build": "node ./bin/gql-testkit.js",
+    "report": "node ./bin/gql-report.js",
+    "prepublish": "yarn run build"
+  },
+  "keywords": [
+    "graphql",
+    "testing",
+    "load-testing"
+  ],
+  "homepage": "https://github.com/jonnSmith/gql-testkit",
+  "author": {
+    "name": "jonnSmith",
+    "url": "https://github.com/jonnSmith"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonnSmith/gql-testkit.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@types/fs-extra": "^8.0.1",
+    "@types/inquirer": "^6.5.0",
+    "@types/js-yaml": "^3.12.1",
+    "artillery": "^1.6.0-27",
+    "chalk": "^2.4.1",
+    "easygraphql-load-tester": "^0.3.5",
+    "fs-extra": "^7.0.1",
+    "graphql": "^14.1.1",
+    "inquirer": "^6.2.2",
+    "js-yaml": "^3.13.1",
+    "meow": "^5.0.0",
+    "minimist": "^1.2.0",
+    "mkdirp": "^0.5.1",
+    "moment": "^2.24.0",
+    "node-fetch": "^2.2.0",
+    "ora": "^3.2.0",
+    "querystringify": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/chalk": "^2.2.0",
+    "@types/graphql": "^14.0.3",
+    "@types/jest": "^23.3.10",
+    "@types/meow": "^5.0.0",
+    "@types/minimist": "^1.2.0",
+    "@types/mkdirp": "^0.5.2",
+    "@types/node": "^10.12.0",
+    "@types/node-fetch": "^2.1.2",
+    "@types/querystringify": "^2.0.0",
+    "jest": "^23.6.0",
+    "jest-fetch-mock": "^2.1.0",
+    "prettier": "^1.15.3",
+    "semantic-release": "^15.12.4",
+    "ts-jest": "^23.10.5",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.1.3"
+  }
+}
