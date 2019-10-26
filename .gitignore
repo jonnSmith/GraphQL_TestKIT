@@ -7,4 +7,6 @@ yarn-error.log
 !sandbox
 sandbox/*
 !sandbox/artillery
-gqlconfig.json
+sandbox/artillery/*
+!sandbox/artillery/queryGenerator.js
+gql.config.json

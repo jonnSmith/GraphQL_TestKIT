@@ -73,7 +73,7 @@ function schemaGQL(configFile) {
                 case 0:
                     config = configFile.config;
                     if (!config.url) {
-                        return [2 /*return*/, C.responseFactory('err', 'message', 'No endpoint provided')];
+                        return [2 /*return*/, C.responseFactory('error', 'message', 'No endpoint provided')];
                     }
                     defaultHeaders = {
                         'Content-Type': 'application/json',
@@ -92,18 +92,18 @@ function schemaGQL(configFile) {
                     return [3 /*break*/, 4];
                 case 3:
                     e_1 = _a.sent();
-                    return [2 /*return*/, C.responseFactory('err', 'message', e_1)];
+                    return [2 /*return*/, C.responseFactory('error', 'message', e_1)];
                 case 4:
-                    if (!schema || schema.status === 'err') {
-                        return [2 /*return*/, C.responseFactory('err', 'message', schema.message)];
+                    if (!schema || schema.status === 'error') {
+                        return [2 /*return*/, C.responseFactory('error', 'message', schema.message)];
                     }
                     else {
                         if (config.schema.filename && schema.schema) {
                             printedFile = printToFile(config.schema.filename, schema.schema);
-                            return [2 /*return*/, C.responseFactory('ok', 'path', printedFile)];
+                            return [2 /*return*/, C.responseFactory('info', 'path', printedFile)];
                         }
                         else {
-                            return [2 /*return*/, C.responseFactory('err', 'message', 'Error: ' + JSON.stringify(schema))];
+                            return [2 /*return*/, C.responseFactory('error', 'message', 'Error: ' + JSON.stringify(schema))];
                         }
                     }
                     return [2 /*return*/];
@@ -125,14 +125,14 @@ function getRemoteSchema(endpoint, options) {
                 case 1:
                     _a = _b.sent(), data = _a.data, errors = _a.errors;
                     if (errors) {
-                        return [2 /*return*/, C.responseFactory('err', 'message', JSON.stringify(errors, null, 2))];
+                        return [2 /*return*/, C.responseFactory('error', 'message', JSON.stringify(errors, null, 2))];
                     }
                     if (options.json) {
-                        return [2 /*return*/, C.responseFactory('ok', 'schema', JSON.stringify(data, null, 2))];
+                        return [2 /*return*/, C.responseFactory('info', 'schema', JSON.stringify(data, null, 2))];
                     }
                     else {
                         schema = buildClientSchema_1.buildClientSchema(data);
-                        return [2 /*return*/, C.responseFactory('ok', 'schema', schemaPrinter_1.printSchema(schema))];
+                        return [2 /*return*/, C.responseFactory('info', 'schema', schemaPrinter_1.printSchema(schema))];
                     }
                     return [2 /*return*/];
             }
@@ -147,10 +147,10 @@ function printToFile(filename, schema) {
             mkdirp_1.default.sync(output);
         }
         fs.writeFileSync(filePath, schema);
-        return C.responseFactory('ok', 'path', filePath, false);
+        return C.responseFactory('info', 'path', filePath, false);
     }
     catch (e) {
-        return C.responseFactory('err', 'message', e, false);
+        return C.responseFactory('error', 'message', e, false);
     }
 }
 //# sourceMappingURL=index.js.map

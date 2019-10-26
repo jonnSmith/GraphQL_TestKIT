@@ -11,5 +11,5 @@
     "esModuleInterop": true
   },
   "exclude": ["./node_modules", "./types", "./bin", "./sandbox"],
-  "include": ["./modules/**/*.ts"]
+  "include": ["./src/**/*.ts"]
 }

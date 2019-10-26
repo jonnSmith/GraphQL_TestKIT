@@ -59,18 +59,18 @@ var artilleryConfigPath = function (fileName) {
 };
 function startLoadTesting(configFile, localSchema, configPath) {
     return __awaiter(this, void 0, void 0, function () {
-        var _a, url, name, outputFolder, testName, schemaPath, reportsFolder;
+        var _a, url, name, outputFolder, appRootOutput, testName, schemaPath, reportsFolder;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    _a = configFile.config, url = _a.url, name = _a.name, outputFolder = _a.outputFolder;
+                    _a = configFile.config, url = _a.url, name = _a.name, outputFolder = _a.outputFolder, appRootOutput = _a.appRootOutput;
                     testName = name ? name : url;
                     observers_1.loading.emit('init', { text: "Preparing Artillery stress tests for: " + testName, id: 'artillery' });
                     schemaPath = artilleryConfigPath(C.ARTILLERY_SCHEMA);
-                    reportsFolder = path.join(C.SANDBOX_PATH, outputFolder);
+                    reportsFolder = path.join(appRootOutput ? C.ROOT : C.SANDBOX_PATH, outputFolder);
                     return [4 /*yield*/, fs.copyFile(localSchema, schemaPath, function (err) {
                             if (err) {
-                                return C.responseFactory('err', 'message', err);
+                                return C.responseFactory('error', 'message', err);
                             }
                         })];
                 case 1:
@@ -83,7 +83,7 @@ function startLoadTesting(configFile, localSchema, configPath) {
 exports.startLoadTesting = startLoadTesting;
 function runLoadTesting(configFile, reportsFolder, configPath) {
     return __awaiter(this, void 0, void 0, function () {
-        var newConfigFilePath, newConfigFile, _a, name, url, _b, duration, _c, arrivalRate, withOutput, queryFilePath, headers, artilleryConfig, doc, options, reportPath, reportFile, date, artilleryRun;
+        var newConfigFilePath, newConfigFile, _a, name, url, _b, duration, _c, arrivalRate, withOutput, queryFilePath, target, headers, artilleryYML, options, reportPath, reportFile, date, artilleryRun, i, k;
         return __generator(this, function (_d) {
             switch (_d.label) {
                 case 0:
@@ -98,23 +98,29 @@ function runLoadTesting(configFile, reportsFolder, configPath) {
                     catch (e) {
                         deleteArgsFile(C.ARTILLERY_SCHEMA)
                             .then(function (e) { return deleteArgsFile(C.ARTILLERY_CONFIG); })
-                            .then(function (e) { return C.responseFactory('ok', 'message', 'config and schema deleted'); });
-                        return [2 /*return*/, C.responseFactory('err', 'message', e)];
+                            .then(function (e) { return C.responseFactory('info', 'message', 'config and schema deleted'); });
+                        return [2 /*return*/, C.responseFactory('error', 'message', e)];
                     }
-                    _a = newConfigFile.config, name = _a.name, url = _a.url, _b = _a.duration, duration = _b === void 0 ? 5 : _b, _c = _a.arrivalRate, arrivalRate = _c === void 0 ? 10 : _c, withOutput = _a.withOutput, queryFilePath = _a.queryFilePath, headers = _a.headers;
-                    return [4 /*yield*/, fs.readFile(artilleryConfigPath(C.ARTILLERY_SETTINGS), 'utf8')];
-                case 1:
-                    artilleryConfig = _d.sent();
-                    doc = yaml.safeLoad(artilleryConfig);
+                    _a = newConfigFile.config, name = _a.name, url = _a.url, _b = _a.duration, duration = _b === void 0 ? 5 : _b, _c = _a.arrivalRate, arrivalRate = _c === void 0 ? 10 : _c, withOutput = _a.withOutput, queryFilePath = _a.queryFilePath, target = _a.target, headers = _a.headers;
+                    try {
+                        artilleryYML = fs.readJSONSync(path.join(C.SANDBOX_PATH, '..', C.ARTILLERY_SETTINGS_SOURCE), { encoding: 'utf8' });
+                    }
+                    catch (e) {
+                        deleteArgsFile(C.ARTILLERY_SCHEMA)
+                            .then(function (e) { return deleteArgsFile(C.ARTILLERY_CONFIG); })
+                            .then(function (e) { return C.responseFactory('info', 'message', 'config and schema deleted'); });
+                        return [2 /*return*/, C.responseFactory('error', 'message', e)];
+                    }
+                    artilleryYML.config.target = target;
                     options = [
                         'run',
                         '--target',
                         "" + url,
                         C.ARTILLERY_SETTINGS
                     ];
-                    doc.config.phases = [{ duration: duration, arrivalRate: arrivalRate }];
+                    artilleryYML.config.phases = [{ duration: duration, arrivalRate: arrivalRate }];
                     if (headers) {
-                        doc.config.defaults = { headers: headers };
+                        artilleryYML.config.defaults = { headers: headers };
                     }
                     if (withOutput) {
                         date = moment_1.default().format(C.OUTPUT_FILE_DATE).toString();
@@ -122,42 +128,56 @@ function runLoadTesting(configFile, reportsFolder, configPath) {
                         reportPath = path.join(reportsFolder, reportFile);
                         options = options.concat(['--output', reportPath]);
                     }
-                    return [4 /*yield*/, fs.writeFile(artilleryConfigPath(C.ARTILLERY_SETTINGS), yaml.safeDump(doc), function (err) {
+                    return [4 /*yield*/, fs.writeFile(artilleryConfigPath(C.ARTILLERY_SETTINGS), yaml.safeDump(artilleryYML), function (err) {
                             if (err) {
                                 deleteArgsFile(C.ARTILLERY_CONFIG)
                                     .then(function (e) { return deleteArgsFile(C.ARTILLERY_SCHEMA); })
-                                    .then(function (e) { return C.responseFactory('ok', 'message', 'config and schema deleted'); });
-                                return C.responseFactory('err', 'message', err);
+                                    .then(function (e) { return deleteArgsFile(C.ARTILLERY_SETTINGS); })
+                                    .then(function (e) { return C.responseFactory('info', 'message', 'config and schema deleted'); });
+                                return C.responseFactory('error', 'message', err);
                             }
                         })];
-                case 2:
+                case 1:
                     _d.sent();
                     artilleryRun = child_process_1.spawn(C.ARTILLERY_BIN, options, {
                         shell: true,
                         cwd: artilleryConfigPath()
                     });
-                    observers_1.loading.emit('succeed', 'artillery');
+                    observers_1.loading.emit('succeed', { id: 'artillery' });
+                    i = 0;
                     artilleryRun.stdout.on('data', function (data) {
+                        if (!i) {
+                            observers_1.loading.emit('succeed', { id: 'spawn' });
+                        }
                         observers_1.ping.emit('info', data.toString());
+                        i++;
                     });
+                    k = 0;
                     artilleryRun.stderr.on('data', function (data) {
+                        if (!k) {
+                            observers_1.loading.emit('fail', { id: 'spawn' });
+                        }
                         observers_1.ping.emit('error', data.toString());
+                        k++;
                     });
                     artilleryRun.on('exit', function (code) {
                         if (code === 0) {
                             if (withOutput && reportPath) {
-                                observers_1.ping.emit('info', "Full report run: \"yarn run gql-report -c=" + configPath + " -f=" + reportFile + "\"");
+                                observers_1.ping.emit('info', "Full report run: \"yarn run gql-testkit -c=" + configPath + " -r -f=" + reportFile + "\"");
                             }
                             if (queryFilePath) {
                                 observers_1.ping.emit('info', "Query file: " + queryFilePath + "\\" + C.QUERIES_REPORT_FILENAME + ".json");
                             }
-                            observers_1.ping.emit('info', 'Thanks for using GraphQL');
                         }
                         deleteArgsFile(C.ARTILLERY_CONFIG)
                             .then(function (e) { return deleteArgsFile(C.ARTILLERY_SCHEMA); })
-                            .then(function (e) { return C.responseFactory('ok', 'message', 'Config and schema deleted'); });
+                            .then(function (e) { return deleteArgsFile(C.ARTILLERY_SETTINGS); })
+                            .then(function (e) { return C.responseFactory('info', 'message', 'Config and schema deleted'); });
                     });
-                    return [2 /*return*/, C.responseFactory('ok', 'message', name + ' testing started:')];
+                    artilleryRun.on('close', function (_) {
+                        observers_1.ping.emit('info', name + ' tests running finished. Thanks for using GraphQL TestKit.');
+                    });
+                    return [2 /*return*/, C.responseFactory('init', 'loading', { text: 'Starting Artillery child process spawn for ' + name, id: 'spawn' })];
             }
         });
     });

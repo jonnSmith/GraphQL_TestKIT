@@ -42,16 +42,21 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var schema_1 = require("./schema");
 var path = __importStar(require("path"));
 var fs = __importStar(require("fs-extra"));
-var observers_1 = require("./types/observers");
+var request_promise_1 = __importDefault(require("request-promise"));
 var artillery_1 = require("./artillery");
+var report_1 = require("./report");
 var C = __importStar(require("./types/constants"));
+var observers_1 = require("./types/observers");
 function testKitGQL(cli) {
     return __awaiter(this, void 0, void 0, function () {
-        var configPath, localSchema, updateSchema, configFilePath, localSchemaPath, isLocalSchema, configFile, e_1, testName, schemaFilename, schemaFilenamePath, isSchemaFilename, schemaResult, e_2;
+        var configPath, localSchema, updateSchema, report, reportFilename, configFilePath, localSchemaPath, isLocalSchema, basicConfigPath, configFile, e_1, testName, schemaFilename, schemaFilenamePath, isSchemaFilename, schemaResult, e_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -59,28 +64,50 @@ function testKitGQL(cli) {
                     configPath = cli.flags.c ? cli.flags.c : '';
                     localSchema = cli.flags.s ? cli.flags.s : '';
                     updateSchema = cli.flags.u ? cli.flags.u : false;
+                    report = cli.flags.r ? cli.flags.r : false;
+                    reportFilename = cli.flags.f ? cli.flags.f : '';
                     configFilePath = configPath ? path.join(C.ROOT, configPath) : '';
                     localSchemaPath = localSchema ? path.join(C.ROOT, localSchema) : '';
                     isLocalSchema = localSchemaPath ? fs.existsSync(localSchemaPath) : false;
                     if (!configPath || !configPath.includes('.json') || !fs.existsSync(configFilePath)) {
-                        return [2 /*return*/, C.responseFactory('err', 'message', 'No config provided')];
+                        basicConfigPath = path.join(C.ROOT, C.CONFIG_MOCK_FILENAME);
+                        if (!fs.existsSync(basicConfigPath)) {
+                            fs.writeJsonSync(path.join(C.ROOT, C.CONFIG_MOCK_FILENAME), C.CONFIG_MOCK, { encoding: 'utf8' });
+                            return [2 /*return*/, C.responseFactory('error', 'message', 'No config provided, basic file created: ' + C.CONFIG_MOCK_FILENAME)];
+                        }
+                        else {
+                            return [2 /*return*/, C.responseFactory('error', 'message', 'Config path ' + configPath + ' is empty, use created basic config: ' + C.CONFIG_MOCK_FILENAME)];
+                        }
+                    }
+                    try {
+                        configFile = fs.readJSONSync(configFilePath, { encoding: 'utf8' });
+                    }
+                    catch (e) {
+                        return [2 /*return*/, C.responseFactory('error', 'message', e)];
                     }
                     _a.label = 1;
                 case 1:
                     _a.trys.push([1, 3, , 4]);
-                    return [4 /*yield*/, fs.readJSON(configFilePath, { encoding: 'utf8' })];
+                    return [4 /*yield*/, request_promise_1.default({ url: configFile.config.url, resolveWithFullResponse: false })];
                 case 2:
-                    configFile = _a.sent();
+                    _a.sent();
                     return [3 /*break*/, 4];
                 case 3:
                     e_1 = _a.sent();
-                    return [2 /*return*/, C.responseFactory('err', 'message', e_1)];
+                    if (e_1.cause && e_1.cause.errno === 'ENOTFOUND') {
+                        return [2 /*return*/, C.responseFactory('error', 'message', 'Provided url in config is invalid: ENOTFOUND. Update GraphQL endpoint url.')];
+                    }
+                    return [3 /*break*/, 4];
                 case 4:
+                    if (report) {
+                        observers_1.loading.emit('succeed', { id: 'startup' });
+                        return [2 /*return*/, report_1.reportGQL(configFile, reportFilename)];
+                    }
                     testName = configFile.config.name ? configFile.config.name : configFile.config.url;
                     schemaFilename = configFile.config.schema.filename;
                     schemaFilenamePath = schemaFilename ? path.join(C.SANDBOX_PATH, C.SCHEMA_FOLDER, schemaFilename) : '';
                     isSchemaFilename = schemaFilenamePath ? fs.existsSync(schemaFilenamePath) : false;
-                    observers_1.loading.emit('succeed', 'startup');
+                    observers_1.loading.emit('succeed', { id: 'startup' });
                     if (!(!isLocalSchema && (!isSchemaFilename || (isSchemaFilename && updateSchema)))) return [3 /*break*/, 9];
                     observers_1.loading.emit('init', { text: "Preparing download GraphQL Schema for: " + testName, id: 'schema' });
                     schemaResult = void 0;
@@ -93,14 +120,14 @@ function testKitGQL(cli) {
                     return [3 /*break*/, 8];
                 case 7:
                     e_2 = _a.sent();
-                    return [2 /*return*/, C.responseFactory('err', 'message', e_2)];
+                    return [2 /*return*/, C.responseFactory('error', 'message', e_2)];
                 case 8:
-                    observers_1.loading.emit('succeed', 'schema');
+                    observers_1.loading.emit('succeed', { id: 'schema' });
                     if (schemaResult && schemaResult.path) {
                         return [2 /*return*/, artillery_1.startLoadTesting(configFile, schemaResult.path, configPath)];
                     }
                     else {
-                        return [2 /*return*/, C.responseFactory('err', 'message', 'Schema saving error')];
+                        return [2 /*return*/, C.responseFactory('error', 'message', 'Schema saving error')];
                     }
                     return [3 /*break*/, 10];
                 case 9:
@@ -111,7 +138,7 @@ function testKitGQL(cli) {
                         return [2 /*return*/, artillery_1.startLoadTesting(configFile, schemaFilenamePath, configPath)];
                     }
                     else {
-                        return [2 /*return*/, C.responseFactory('err', 'message', 'No schema provided')];
+                        return [2 /*return*/, C.responseFactory('error', 'message', 'No schema provided')];
                     }
                     _a.label = 10;
                 case 10: return [2 /*return*/];

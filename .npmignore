@@ -1,2 +1,4 @@
-modules/*
-gqlconfig.example.json
+src/*
+node_modules
+gql.config.json
+artillery.json

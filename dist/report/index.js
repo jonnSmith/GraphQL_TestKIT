@@ -53,46 +53,28 @@ var inquirer_1 = __importDefault(require("inquirer"));
 var child_process_1 = require("child_process");
 var observers_1 = require("../types/observers");
 var C = __importStar(require("../types/constants"));
-function reportGQL(cli) {
+function reportGQL(configFile, reportFilename) {
     return __awaiter(this, void 0, void 0, function () {
-        var configPath, configFilePath, reportFile, configFile, e_1, _a, name, outputFolder, reportsFolder, isReportsFolder, files, questions, options, answers, reportFilePath, report;
+        var reportFile, _a, outputFolder, appRootOutput, reportsFolder, isReportsFolder, files, questions, options, answers, reportFilePath, report, i, k;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    configPath = cli.flags.c ? cli.flags.c : '';
-                    configFilePath = configPath ? path.join(C.ROOT, configPath) : '';
-                    reportFile = cli.flags.f ? cli.flags.f : '';
-                    observers_1.loading.emit('init', { text: 'Reading config file', id: 'startport' });
-                    if (!configPath || !configPath.includes('.json') || !fs.existsSync(configFilePath)) {
-                        return [2 /*return*/, C.responseFactory('err', 'message', 'No config provided')];
-                    }
-                    _b.label = 1;
-                case 1:
-                    _b.trys.push([1, 3, , 4]);
-                    return [4 /*yield*/, fs.readJSON(configFilePath, { encoding: 'utf8' })];
-                case 2:
-                    configFile = _b.sent();
-                    return [3 /*break*/, 4];
-                case 3:
-                    e_1 = _b.sent();
-                    return [2 /*return*/, C.responseFactory('err', 'message', e_1)];
-                case 4:
-                    _a = configFile.config, name = _a.name, outputFolder = _a.outputFolder;
+                    reportFile = reportFilename;
+                    _a = configFile.config, outputFolder = _a.outputFolder, appRootOutput = _a.appRootOutput;
                     if (!outputFolder) {
-                        return [2 /*return*/, C.responseFactory('err', 'message', 'Reports folder not configured')];
+                        return [2 /*return*/, C.responseFactory('error', 'message', 'Reports folder not configured')];
                     }
-                    reportsFolder = path.join(C.SANDBOX_PATH, outputFolder);
+                    reportsFolder = path.join(appRootOutput ? C.ROOT : C.SANDBOX_PATH, outputFolder);
                     return [4 /*yield*/, fs.pathExists(reportsFolder)];
-                case 5:
+                case 1:
                     isReportsFolder = _b.sent();
                     if (!isReportsFolder) {
-                        return [2 /*return*/, C.responseFactory('err', 'message', 'Reports folder not exists')];
+                        return [2 /*return*/, C.responseFactory('error', 'message', 'Reports folder not exists')];
                     }
-                    observers_1.loading.emit('succeed', 'startport');
-                    if (!(!reportFile || !reportFile.includes('.json'))) return [3 /*break*/, 8];
+                    if (!(!reportFile || !reportFile.includes('.json'))) return [3 /*break*/, 4];
                     observers_1.loading.emit('init', { text: 'Reading report files directory', id: 'filepath' });
                     return [4 /*yield*/, fs.readdir(reportsFolder)];
-                case 6:
+                case 2:
                     files = _b.sent();
                     files = files.filter(function (f) {
                         return !f.includes(C.QUERIES_REPORT_FILENAME)
@@ -100,7 +82,7 @@ function reportGQL(cli) {
                             && moment_1.default(f.replace('.json', ''), C.OUTPUT_FILE_DATE, true).isValid();
                     });
                     if (!files.length) {
-                        return [2 /*return*/, C.responseFactory('err', 'message', 'No reports found in folder')];
+                        return [2 /*return*/, C.responseFactory('error', 'message', 'No reports found in folder')];
                     }
                     questions = [];
                     options = {
@@ -110,16 +92,16 @@ function reportGQL(cli) {
                         choices: files
                     };
                     questions.push(options);
-                    observers_1.loading.emit('succeed', 'filepath');
+                    observers_1.loading.emit('succeed', { id: 'filepath' });
                     return [4 /*yield*/, inquirer_1.default.prompt(questions)];
-                case 7:
+                case 3:
                     answers = _b.sent();
                     reportFile = answers['reportFile'];
-                    _b.label = 8;
-                case 8:
+                    _b.label = 4;
+                case 4:
                     reportFilePath = path.join(reportsFolder, reportFile);
                     if (!fs.existsSync(reportFilePath)) {
-                        return [2 /*return*/, C.responseFactory('err', 'message', 'Report file doesnt exists')];
+                        return [2 /*return*/, C.responseFactory('error', 'message', 'Report file does not exists')];
                     }
                     report = child_process_1.spawn(C.ARTILLERY_BIN, [
                         'report',
@@ -127,16 +109,26 @@ function reportGQL(cli) {
                     ], {
                         shell: true
                     });
+                    i = 0;
                     report.stdout.on('data', function (data) {
+                        if (!i) {
+                            observers_1.loading.emit('succeed', { id: 'respawn' });
+                        }
                         observers_1.ping.emit('info', data.toString());
+                        i++;
                     });
+                    k = 0;
                     report.stderr.on('data', function (data) {
+                        if (!k) {
+                            observers_1.loading.emit('fail', { id: 'spawn' });
+                        }
                         observers_1.ping.emit('error', data.toString());
+                        k++;
                     });
-                    report.on('close', function (code) {
-                        observers_1.ping.emit('info', 'Report generation finished');
+                    report.on('close', function (_) {
+                        observers_1.ping.emit('info', 'Report generating finished. Check opened browser window.');
                     });
-                    return [2 /*return*/, C.responseFactory('ok', 'message', reportFile + ' reports generating:')];
+                    return [2 /*return*/, C.responseFactory('init', 'loading', { text: 'Starting report child process for ' + reportFile, id: 'respawn' })];
             }
         });
     });

@@ -8,34 +8,18 @@ import { loading, ping } from '../types/observers'
 import * as I from '../types/interfaces'
 import * as C from '../types/constants'
 
-export async function reportGQL(cli): Promise<I.Result> {
-  const configPath = cli.flags.c ? cli.flags.c : ''
-  const configFilePath = configPath ? path.join(C.ROOT, configPath) : ''
-  let reportFile = cli.flags.f ? cli.flags.f : ''
+export async function reportGQL(configFile, reportFilename): Promise<I.Result> {
+  let reportFile = reportFilename
 
-  loading.emit('init', {text: 'Reading config file', id: 'startport'})
-
-  if (!configPath || !configPath.includes('.json') || !fs.existsSync(configFilePath)) {
-    return C.responseFactory('err', 'message', 'No config provided')
-  }
-  let configFile: I.ConfigFile
-
-  try {
-    configFile = await fs.readJSON(configFilePath, {encoding: 'utf8'})
-  } catch (e) {
-    return C.responseFactory('err', 'message', e)
-  }
-  const {config: {name, outputFolder}} = configFile;
+  const {config: { outputFolder, appRootOutput}} = configFile;
   if (!outputFolder) {
-    return C.responseFactory('err', 'message', 'Reports folder not configured')
+    return C.responseFactory('error', 'message', 'Reports folder not configured')
   }
-  const reportsFolder = path.join(C.SANDBOX_PATH, outputFolder)
+  const reportsFolder = path.join(appRootOutput ? C.ROOT : C.SANDBOX_PATH, outputFolder)
   const isReportsFolder = await fs.pathExists(reportsFolder)
   if (!isReportsFolder) {
-    return C.responseFactory('err', 'message', 'Reports folder not exists')
+    return C.responseFactory('error', 'message', 'Reports folder not exists')
   }
-
-  loading.emit('succeed', 'startport')
 
   if(!reportFile || !reportFile.includes('.json')) {
 
@@ -48,7 +32,7 @@ export async function reportGQL(cli): Promise<I.Result> {
       && moment(f.replace('.json', ''), C.OUTPUT_FILE_DATE, true).isValid()
     )
     if (!files.length) {
-      return C.responseFactory('err', 'message', 'No reports found in folder')
+      return C.responseFactory('error', 'message', 'No reports found in folder')
     }
     const questions: Array<inquirer.ListQuestion> = []
     const options: inquirer.ListQuestion = {
@@ -59,7 +43,7 @@ export async function reportGQL(cli): Promise<I.Result> {
     }
     questions.push(options)
 
-    loading.emit('succeed', 'filepath')
+    loading.emit('succeed', { id: 'filepath' })
 
     const answers = await inquirer.prompt(questions)
     reportFile = answers['reportFile'];
@@ -68,7 +52,7 @@ export async function reportGQL(cli): Promise<I.Result> {
   const reportFilePath = path.join(reportsFolder, reportFile)
 
   if(!fs.existsSync(reportFilePath) ) {
-    return C.responseFactory('err', 'message', 'Report file doesnt exists')
+    return C.responseFactory('error', 'message', 'Report file does not exists')
   }
 
   const report = spawn(
@@ -82,18 +66,24 @@ export async function reportGQL(cli): Promise<I.Result> {
     }
   )
 
+  let i = 0
   report.stdout.on('data', (data) => {
+    if (!i) { loading.emit('succeed', { id: 'respawn' }) }
     ping.emit('info', data.toString())
+    i++
   })
 
+  let k = 0
   report.stderr.on('data', (data) => {
+    if (!k) { loading.emit('fail', { id: 'spawn' }) }
     ping.emit('error', data.toString())
+    k++
   })
 
-  report.on('close', code => {
-    ping.emit('info', 'Report generation finished')
+  report.on('close', _ => {
+    ping.emit('info', 'Report generating finished. Check opened browser window.')
   })
 
-  return C.responseFactory('ok', 'message', reportFile + ' reports generating:')
+  return C.responseFactory('init', 'loading', { text: 'Starting report child process for ' + reportFile, id: 'respawn' })
 
 }

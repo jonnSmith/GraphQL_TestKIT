@@ -14,7 +14,7 @@ export async function schemaGQL(configFile: I.ConfigFile): Promise<I.Result> {
   const config = configFile.config
 
   if (!config.url) {
-    return C.responseFactory('err', 'message', 'No endpoint provided')
+    return C.responseFactory('error', 'message', 'No endpoint provided')
   }
 
   /* Headers */
@@ -35,17 +35,17 @@ export async function schemaGQL(configFile: I.ConfigFile): Promise<I.Result> {
        json: config.schema.json,
      })
   } catch(e) {
-    return C.responseFactory('err', 'message', e)
+    return C.responseFactory('error', 'message', e)
   }
 
-  if (!schema || schema.status === 'err') {
-    return C.responseFactory('err', 'message', schema.message)
+  if (!schema || schema.status === 'error') {
+    return C.responseFactory('error', 'message', schema.message)
   } else {
     if (config.schema.filename && schema.schema) {
       const printedFile: I.Result = printToFile(config.schema.filename, schema.schema)
-      return C.responseFactory('ok', 'path', printedFile)
+      return C.responseFactory('info', 'path', printedFile)
     } else {
-      return C.responseFactory('err', 'message', 'Error: ' + JSON.stringify(schema))
+      return C.responseFactory('error', 'message', 'Error: ' + JSON.stringify(schema))
     }
   }
 }
@@ -61,14 +61,14 @@ async function getRemoteSchema(
   }).then(res => res.json())
 
   if (errors) {
-    return C.responseFactory('err', 'message', JSON.stringify(errors, null, 2))
+    return C.responseFactory('error', 'message', JSON.stringify(errors, null, 2))
   }
 
   if (options.json) {
-    return C.responseFactory('ok', 'schema', JSON.stringify(data, null, 2))
+    return C.responseFactory('info', 'schema', JSON.stringify(data, null, 2))
   } else {
     const schema = buildClientSchema(data)
-    return C.responseFactory('ok', 'schema', printSchema(schema))
+    return C.responseFactory('info', 'schema', printSchema(schema))
   }
 }
 
@@ -83,8 +83,8 @@ function printToFile(
       mkdirp.sync(output)
     }
     fs.writeFileSync(filePath, schema)
-    return C.responseFactory('ok', 'path', filePath, false) as I.Result
+    return C.responseFactory('info', 'path', filePath, false) as I.Result
   } catch (e) {
-    return C.responseFactory('err', 'message', e, false) as I.Result
+    return C.responseFactory('error', 'message', e, false) as I.Result
   }
 }

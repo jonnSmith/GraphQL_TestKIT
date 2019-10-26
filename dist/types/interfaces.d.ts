@@ -30,6 +30,8 @@ export interface ConfigFile {
         arrivalRate: number;
         withOutput: boolean;
         outputFolder: string;
+        appRootOutput: boolean;
+        target: string;
         headers: {
             [key: string]: string;
         };
