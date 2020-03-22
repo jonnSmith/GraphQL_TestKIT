@@ -3,6 +3,7 @@ import * as fs from 'fs-extra'
 import { spawn } from 'child_process'
 import moment from 'moment'
 import * as yaml from 'js-yaml'
+import {exec} from 'child_process';
 
 import * as I from '../types/interfaces'
 import * as C from '../types/constants'
@@ -111,18 +112,25 @@ export async function runLoadTesting(configFile, reportsFolder, configPath): Pro
   })
 
   artilleryRun.on('exit', code => {
-    if (code === 0) {
-      if (withOutput && reportPath) {
-        ping.emit('info', `Full report run: "yarn run gql-testkit -c=${configPath} -r -f=${reportFile}"`)
-      }
-      if (queryFilePath) {
-        ping.emit('info', `Query file: ${queryFilePath}\\${C.QUERIES_REPORT_FILENAME}.json`)
+    async function generateReport (code) {
+      if (code === 0) {
+        if (withOutput && reportPath) {
+          await exec(`node ./bin/gql-testkit.js -c=${configPath} -r -f=${reportFile}`);
+        }
+        if (queryFilePath) {
+          ping.emit('info', `Query file: ${queryFilePath}\\${C.QUERIES_REPORT_FILENAME}.json`)
+        }
+        if (queryFilePath) {
+          ping.emit('info', `Schema file: ${path.join(C.SANDBOX_PATH, C.SCHEMA_FOLDER, C.ARTILLERY_SCHEMA)}`)
+        }
       }
     }
-    deleteArgsFile(C.ARTILLERY_CONFIG)
-      .then( e => deleteArgsFile(C.ARTILLERY_SCHEMA) )
-      .then( e => deleteArgsFile(C.ARTILLERY_SETTINGS) )
-      .then( e => C.responseFactory('info', 'message', 'Config and schema deleted' ) )
+    generateReport(code).then( _ => {
+      deleteArgsFile(C.ARTILLERY_CONFIG)
+        .then( e => deleteArgsFile(C.ARTILLERY_SCHEMA) )
+        .then( e => deleteArgsFile(C.ARTILLERY_SETTINGS) )
+        .then( e => C.responseFactory('info', 'message', 'Config and schema deleted' ) )
+    })
   })
 
   artilleryRun.on('close', _ => {

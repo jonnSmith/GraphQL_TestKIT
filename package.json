@@ -7,8 +7,9 @@
   },
   "scripts": {
     "build": "tsc -d",
-    "testkit": "node ./bin/gql-testkit.js",
-    "prepublish": "yarn run build"
+    "testkit": "node ./bin/gql-testkit.js --c=gql.config.json --s=schema.gql --u=true",
+    "test:api": "yarn run-s build testkit",
+    "prepublish": "yarn build"
   },
   "keywords": [
     "graphql",
@@ -43,6 +44,7 @@
     "mkdirp": "^0.5.1",
     "moment": "^2.24.0",
     "node-fetch": "^2.2.0",
+    "npm-run-all": "^4.1.5",
     "ora": "^3.2.0",
     "querystringify": "^2.1.0",
     "request-promise": "^4.2.4"

@@ -87,7 +87,7 @@ export const CONFIG_MOCK_FILENAME = 'gql.config.json';
 export const CONFIG_MOCK = {
   config: {
     name: "Testing GraphQL with Artillery",
-    url: "http://server.domain:8080/graphql",
+    url: "http://localhost:3000/graphql",
     selectedQueries: ["signin", "signup", "user"],
     queryFile: true,
     withMutations: true,
@@ -96,7 +96,7 @@ export const CONFIG_MOCK = {
     withOutput: true,
     outputFolder: "tests-gql-report",
     appRootOutput: false,
-    target: "http://localhost:8080/",
+    target: "http://localhost:3000/",
     headers: {
       Authorization: "bearer {TOKEN}"
     },
@@ -118,7 +118,7 @@ export const CONFIG_MOCK = {
       secondName: "Smith"
     },
     user: {
-      "id": 1
+      id: "5e774d286bc20f3e2491da53",
     }
   }
 }
