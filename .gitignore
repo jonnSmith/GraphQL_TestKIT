@@ -10,5 +10,3 @@ sandbox/*
 sandbox/artillery/*
 !sandbox/artillery/queryGenerator.js
 gql.config.json
-dist
-yarn.lock
